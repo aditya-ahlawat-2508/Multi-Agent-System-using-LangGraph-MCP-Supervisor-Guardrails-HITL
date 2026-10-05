@@ -59,7 +59,7 @@ if not GROQ_API_KEY:
 # LLM - original model kept
 # =========================
 llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
+    model="openai/gpt-oss-120b",
     api_key=GROQ_API_KEY,
 )
 
@@ -132,6 +132,33 @@ def _json_from_llm(text: str) -> dict[str, Any]:
         raise ValueError("The model did not return a JSON object.")
 
     return json.loads(text[start : end + 1])
+
+
+def _tool_text(value: Any, limit: int = 3000) -> str:
+    """Flatten MCP tool output (str or content-block list) to capped plain text.
+
+    Raw tool JSON can be huge; capping it keeps downstream prompts under the
+    provider's tokens-per-minute limit.
+    """
+    if isinstance(value, list):
+        value = "\n".join(
+            str(block.get("text", "")) if isinstance(block, dict) else str(block)
+            for block in value
+        )
+    text = str(value)
+
+    try:
+        parsed = json.loads(text)
+        results = parsed.get("results") if isinstance(parsed, dict) else None
+        if results:
+            text = "\n\n".join(
+                f"{r.get('title', '')} ({r.get('url', '')})\n{r.get('content', '')[:500]}"
+                for r in results
+            )
+    except (ValueError, AttributeError):
+        pass
+
+    return text[:limit]
 
 
 def _empty_constraints() -> dict[str, Any]:
@@ -382,7 +409,7 @@ def hotel_agent(state: TravelState):
         )
 
     return {
-        "hotel_results": hotel_results,
+        "hotel_results": _tool_text(hotel_results),
         "messages": [
             AIMessage(
                 content="Hotel information processed."
@@ -413,10 +440,10 @@ def weather_agent(state: TravelState):
 
         weather_results = f"""
 Current Weather:
-{weather_data}
+{_tool_text(weather_data, 1500)}
 
 Forecast:
-{forecast_data}
+{_tool_text(forecast_data, 1500)}
 """
 
     except Exception as exc:
@@ -593,19 +620,19 @@ Supervisor Constraints:
 {state.get('trip_constraints', {})}
 
 Flights:
-{state.get('flight_results', '')}
+{_tool_text(state.get('flight_results', ''), 1500)}
 
 Hotels:
-{state.get('hotel_results', '')}
+{_tool_text(state.get('hotel_results', ''), 1500)}
 
 Weather:
-{state.get('weather_results', '')}
+{_tool_text(state.get('weather_results', ''), 1000)}
 
 Budget Analysis:
-{state.get('budget_results', '')}
+{_tool_text(state.get('budget_results', ''), 2000)}
 
 Draft Itinerary:
-{state.get('itinerary', '')}
+{_tool_text(state.get('itinerary', ''), 3500)}
 
 Format the final answer beautifully using these sections:
 1. Trip Summary

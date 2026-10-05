@@ -16,6 +16,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
+# mcp_client.py launches the Tavily and AviationStack MCP servers through uvx
+RUN pip install --no-cache-dir uv
+
 COPY . .
 
 EXPOSE 8000

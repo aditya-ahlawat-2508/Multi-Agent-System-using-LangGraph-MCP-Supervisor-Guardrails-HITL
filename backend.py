@@ -22,9 +22,9 @@ from langchain_core.messages import (
     AIMessage,
     SystemMessage,
 )
-from langchain_groq import ChatGroq
 
 
+from llm_config import build_llm
 from mcp_client import (
     tavily_mcp_search,
     aviation_mcp_call,
@@ -50,18 +50,10 @@ def get_database_url():
     return database_url
 
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-if not GROQ_API_KEY:
-    raise ValueError("GROQ_API_KEY is missing. Please add it to your .env file.")
-
 # =========================
-# LLM - original model kept
+# LLM - configured via LLM_* variables in .env
 # =========================
-llm = ChatGroq(
-    model="openai/gpt-oss-120b",
-    api_key=GROQ_API_KEY,
-)
+llm = build_llm()
 
 # =========================
 # State - original fields kept, new control fields added

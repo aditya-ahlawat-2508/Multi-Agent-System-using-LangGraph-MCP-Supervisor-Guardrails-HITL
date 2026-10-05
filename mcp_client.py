@@ -6,8 +6,9 @@ from typing import Any
 
 import certifi
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
 from langchain_mcp_adapters.client import MultiServerMCPClient
+
+from llm_config import build_llm
 
 
 # =========================================================
@@ -29,7 +30,6 @@ AVIATION_STACK_API_KEY = (
 )
 
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 WEATHER_SERVER_PATH = BASE_DIR / "custom_weather_mcp_server.py"
 UVX_COMMAND = shutil.which("uvx") or "uvx"
@@ -65,10 +65,7 @@ def _subprocess_env(**updates: str | None) -> dict[str, str]:
 # LLM
 # =========================================================
 
-llm = ChatGroq(
-    model="openai/gpt-oss-120b",
-    api_key=_require_env("GROQ_API_KEY", GROQ_API_KEY),
-)
+llm = build_llm()
 
 
 # =========================================================
